@@ -2,3 +2,6 @@
 *.xml
 *.iml
 *.hdf
+*.egg*
+*.pyc
+build
