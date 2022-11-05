@@ -4,16 +4,11 @@ Generates HDF5 files of a driven damped harmonic oscillator in the data/ directo
 
 from https://scientific-python.readthedocs.io/en/latest/notebooks_rst/3_Ordinary_Differential_Equations/02_Examples/Harmonic_Oscillator.html
 """
-import pathlib
-
 import h5py
-import matplotlib
-import numpy as np
-import scipy
-
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+import numpy as np
+import pathlib
+import scipy
 from typing import Callable
 
 data_dir = pathlib.Path(__file__).parent / 'data'

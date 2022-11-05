@@ -1,10 +1,7 @@
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
 import pysindy as ps
-
-matplotlib.use('TkAgg')
 
 from pysindy.differentiation import FiniteDifference
 from pysindy.optimizers import STLSQ
@@ -14,7 +11,9 @@ THRESHOLD = 0.0001
 MAX_ITERATIONS = 1000
 
 
-def fit(x: np.ndarray, signals: Dict, th: float = THRESHOLD, max_iter: int = MAX_ITERATIONS):
+def fit(x: np.ndarray, signals: Dict,
+        ensemble: bool,
+        th: float = THRESHOLD, max_iter: int = MAX_ITERATIONS):
     """Fit using pysindy
 
     x: time
@@ -43,7 +42,7 @@ def fit(x: np.ndarray, signals: Dict, th: float = THRESHOLD, max_iter: int = MAX
                      differentiation_method=differentiation_method,
                      feature_names=feature_names,
                      discrete_time=False)
-    model.fit(x=data.T, t=x, ensemble=True)
+    model.fit(x=data.T, t=x, ensemble=ensemble)
     model.print()
     return model, {f'{sname}_dot': v for sname, v in zip(list(signals.keys()), signal_dots)}
 
@@ -68,10 +67,10 @@ def predict(model, time: np.ndarray, signals: Dict, derivatives: Dict):
 
 class PySINDyData:
 
-    def __init__(self, time, data: Dict, th, max_iter):
+    def __init__(self, time, data: Dict, ensemble, th, max_iter):
         self.time = time
         self.data = data
-        self.model, self.data_derivative_data = fit(self.time, data, th, max_iter)
+        self.model, self.data_derivative_data = fit(self.time, data, ensemble, th, max_iter)
 
     def predict(self, time: np.ndarray):
         self.prediction_time = time
