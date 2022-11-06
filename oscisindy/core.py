@@ -1,11 +1,10 @@
+from typing import Dict
+
 import matplotlib.pyplot as plt
 import numpy as np
-
 import pysindy as ps
-
 from pysindy.differentiation import FiniteDifference
 from pysindy.optimizers import STLSQ
-from typing import Dict
 
 THRESHOLD = 0.0001
 MAX_ITERATIONS = 1000
@@ -47,7 +46,7 @@ def fit(x: np.ndarray, signals: Dict,
     return model, {f'{sname}_dot': v for sname, v in zip(list(signals.keys()), signal_dots)}
 
 
-def predict(model, time: np.ndarray, signals: Dict, derivatives: Dict):
+def predict(model, time: np.ndarray, signals: Dict, derivatives: Dict) -> Dict:
     assert len(signals) == len(derivatives)
 
     initial_conditions = []

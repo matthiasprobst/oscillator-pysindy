@@ -4,53 +4,68 @@ Generates HDF5 files of a driven damped harmonic oscillator in the data/ directo
 
 from https://scientific-python.readthedocs.io/en/latest/notebooks_rst/3_Ordinary_Differential_Equations/02_Examples/Harmonic_Oscillator.html
 """
+import pathlib
+from typing import Callable, Union, Tuple, List
+
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-import pathlib
 import scipy
-from typing import Callable
 
 data_dir = pathlib.Path(__file__).parent / 'data'
 data_dir.mkdir(parents=True, exist_ok=True)
 
 
-def free_oscillator(X, t, zeta, omega0):
+def free_oscillator(X, t, zeta0, omega0):
     """
     Free Harmonic Oscillator ODE
     """
     x, dotx = X
-    ddotx = -2 * zeta * omega0 * dotx - omega0 ** 2 * x
+    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x
     return [dotx, ddotx]
 
 
-def driven_oscillator(X, t, zeta, omega0, control: Callable):
+def driven_oscillator(X: Union[List[np.ndarray], Tuple[np.ndarray, np.ndarray]],
+                      t: np.ndarray,
+                      zeta0: float,
+                      omega0: float,
+                      control: Callable,
+                      *args):
     """
     Driven Harmonic Oscillator ODE
     control is a function that takes t (time) as an input
+
+    *args is passed to the control function
     """
     if control is None:
-        return free_oscillator(X, t, zeta, omega0)
+        return free_oscillator(X, t, zeta0, omega0)
     x, dotx = X
-    ddotx = -2 * zeta * omega0 * dotx - omega0 ** 2 * x + control(t)
+    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x + control(t, *args)
     return [dotx, ddotx]
 
 
-def integrate(t, f: Callable, zeta=0.05, omega0=2. * np.pi, control=None):
+def integrate(t: np.ndarray,
+              f: Callable,
+              zeta0=0.05,
+              omega0=2. * np.pi,
+              control: Tuple[Union[Callable, None], List[float]] = None, ):
     """
     Update function.
     """
     X0 = [1., 0.]
-    return scipy.integrate.odeint(f, X0, t, args=(zeta, omega0, control))
+    if control is None:
+        ctr_fun = None
+        ctr_args = ()
+    else:
+        ctr_fun, ctr_args = control
+    return scipy.integrate.odeint(f,
+                                  X0,
+                                  t,
+                                  args=(zeta0, omega0, ctr_fun, *ctr_args))
 
 
-def define_control(a: float, omega: float, phi0, offset) -> Callable:
-    """Generates the control function that takes time as input only"""
-
-    def control(t):
-        return a * np.sin(omega * t - phi0) + offset
-
-    return control
+def control(t, a: float, omega: float, phi0, offset):
+    return a * np.sin(omega * t - phi0) + offset
 
 
 def write_hdf5_testdata(plot: bool = True):
@@ -58,10 +73,9 @@ def write_hdf5_testdata(plot: bool = True):
     dt = 1e-2
     t = np.arange(0., 10.0, dt)
 
-    ctr = define_control(20, 10, np.pi / 2, offset=20)
-
     signal = integrate(t, driven_oscillator, 0.2, 2. * np.pi * 2.)[:, 0]
-    driven_signal = integrate(t, driven_oscillator, 0.2, 2. * np.pi * 2., control=ctr)[:, 0]
+    driven_signal = integrate(t, driven_oscillator, 0.2, 2. * np.pi * 2., control=(control,
+                                                                                   (0, 10, np.pi / 2, 20)))[:, 0]
 
     if plot:
         fig = plt.figure()
