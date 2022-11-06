@@ -10,7 +10,7 @@ from typing import Callable, Union, Tuple, List
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
+from scipy.integrate import odeint
 
 data_dir = pathlib.Path(__file__).parent / 'data'
 data_dir.mkdir(parents=True, exist_ok=True)
@@ -27,9 +27,7 @@ def free_oscillator(X, t, zeta0, omega0):
 
 def driven_oscillator(X: Union[List[np.ndarray], Tuple[np.ndarray, np.ndarray]],
                       t: np.ndarray,
-                      zeta0: float,
-                      omega0: float,
-                      control: Callable,
+                      contol_function: Callable,
                       *args):
     """
     Driven Harmonic Oscillator ODE
@@ -37,31 +35,36 @@ def driven_oscillator(X: Union[List[np.ndarray], Tuple[np.ndarray, np.ndarray]],
 
     *args is passed to the control function
     """
-    if control is None:
-        return free_oscillator(X, t, zeta0, omega0)
+    zeta0 = args[0]
+    omega0 = args[1]
+    if contol_function is None:
+        return free_oscillator(X, t, zeta0=zeta0, omega0=omega0)
     x, dotx = X
-    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x + control(t, *args)
+    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x + contol_function(t, *args[2:])
     return [dotx, ddotx]
+
+
+class Integrator:
+    def __init__(self, control_function: Callable):
+        self._control_function = control_function
+        self.f = driven_oscillator
+
+    def __call__(self, t, *params):
+        return integrate(t, self.f, self._control_function, *params)[:, 0]
 
 
 def integrate(t: np.ndarray,
               f: Callable,
-              zeta0=0.05,
-              omega0=2. * np.pi,
-              control: Tuple[Union[Callable, None], List[float]] = None, ):
+              contol_function: Callable,
+              *params):
     """
     Update function.
     """
     X0 = [1., 0.]
-    if control is None:
-        ctr_fun = None
-        ctr_args = ()
-    else:
-        ctr_fun, ctr_args = control
-    return scipy.integrate.odeint(f,
-                                  X0,
-                                  t,
-                                  args=(zeta0, omega0, ctr_fun, *ctr_args))
+    return odeint(f,
+                  X0,
+                  t,
+                  args=(contol_function, *params))
 
 
 def control(t, a: float, omega: float, phi0, offset):
