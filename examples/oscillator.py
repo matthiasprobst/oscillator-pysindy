@@ -1,4 +1,4 @@
-from typing import List, Callable, Tuple
+from typing import Callable, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,14 +7,18 @@ from scipy import optimize
 from oscisindy import data_generation
 
 
-def driving_force(t, a, b, omega):
+def driving_force(t, a, b, omega, phi0):
     """user defined force function"""
-    return a * np.sin(omega * 2 * np.pi * t) + b
+    return a * np.sin(omega * 2 * np.pi * t - phi0) + b
+
+
+def guessed_force(t, c):
+    return c
 
 
 class OscillatorControl:
 
-    def __init__(self, f: Callable, params: List[float]):
+    def __init__(self, f: Callable, params: Tuple):
         self.f = f
         self.params = params
 
@@ -54,20 +58,26 @@ class Oscillator:
 
 def fit_osci():
     # generate data from a driven oscillator
+    Nt = 800
     timestep = 1e-2
     time = np.arange(0.1, 10.0, timestep)
+    time_exp = np.arange(0.1, 10.0, timestep)
 
-    ctrl = OscillatorControl(driving_force, (10, 20, 1))
+    true_ctrl = (10, 20, 2)
+    guess_ctrl = (1, 1, 1)
 
+    ctrl = OscillatorControl(driving_force, true_ctrl)
     true_osci = Oscillator(control=ctrl, params=(0.1, 8))
 
-    guessed_ctrl = OscillatorControl(driving_force, (3, 5, 4))
-    guess_osci = Oscillator(control=guessed_ctrl, params=(1, 6))
-    guess_osci.guess(time, true_osci.signal(time), method=None)  # 'trf, dogbox')
+    guessed_ctrl = OscillatorControl(driving_force, guess_ctrl)
+    guess_osci = Oscillator(control=guessed_ctrl, params=(1, 1))
+
+    guess_osci.guess(time[0:Nt], true_osci.signal(time[0:Nt]), method=None)  # 'trf, dogbox')
 
     plt.figure()
+    plt.plot(time_exp, guess_osci.signal(time_exp), label='prediction')
+    plt.plot(time[:Nt], guess_osci.signal(time[:Nt]), label='fit')
     plt.plot(time, true_osci.signal(time), label='true')
-    plt.plot(time, guess_osci.signal(time), label='guess')
     plt.xlabel('time')
     plt.ylabel('signal')
     plt.legend()

@@ -27,7 +27,7 @@ def free_oscillator(X, t, zeta0, omega0):
 
 def driven_oscillator(X: Union[List[np.ndarray], Tuple[np.ndarray, np.ndarray]],
                       t: np.ndarray,
-                      contol_function: Callable,
+                      control_function: Callable,
                       *args):
     """
     Driven Harmonic Oscillator ODE
@@ -37,10 +37,10 @@ def driven_oscillator(X: Union[List[np.ndarray], Tuple[np.ndarray, np.ndarray]],
     """
     zeta0 = args[0]
     omega0 = args[1]
-    if contol_function is None:
+    if control_function is None:
         return free_oscillator(X, t, zeta0=zeta0, omega0=omega0)
     x, dotx = X
-    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x + contol_function(t, *args[2:])
+    ddotx = -2 * zeta0 * omega0 * dotx - omega0 ** 2 * x + control_function(t, *args[2:])
     return [dotx, ddotx]
 
 
@@ -55,7 +55,7 @@ class Integrator:
 
 def integrate(t: np.ndarray,
               f: Callable,
-              contol_function: Callable,
+              control_function: Callable,
               *params):
     """
     Update function.
@@ -64,10 +64,11 @@ def integrate(t: np.ndarray,
     return odeint(f,
                   X0,
                   t,
-                  args=(contol_function, *params))
+                  args=(control_function, *params))
 
 
 def control(t, a: float, omega: float, phi0, offset):
+    """Generate control input for driven oscillator"""
     return a * np.sin(omega * t - phi0) + offset
 
 
